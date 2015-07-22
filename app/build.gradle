@@ -22,4 +22,7 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.0.0'
+    compile files('libs/commons-codec-1.1.jar')
+    compile files('build/libs/commons-codec-1.10.jar')
+    compile files('build/libs/twitter4j-core-4.0.4.jar')
 }

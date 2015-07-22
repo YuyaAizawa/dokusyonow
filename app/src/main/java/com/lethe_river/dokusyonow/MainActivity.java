@@ -1,12 +1,16 @@
 package com.lethe_river.dokusyonow;
 
+import twitter4j.Status;
+import twitter4j.StatusUpdate;
+import twitter4j.Twitter;
+
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,9 +20,9 @@ import android.widget.Toast;
 
 import org.w3c.dom.Document;
 
-import java.io.IOException;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -26,10 +30,14 @@ import java.util.Date;
 import java.util.Map;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity {
 
     private static final int REQ_CODE = 1;
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    Twitter twitter;
+
+    byte[] image;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +110,32 @@ public class MainActivity extends ActionBarActivity {
         new DocumentGetter().execute(isbn);
     }
 
+    public void tweet(View view) {
+        String date = ((EditText) findViewById(R.id.dateEditText)).getText().toString();
+        String title = ((EditText) findViewById(R.id.titleEditText)).getText().toString();
+        String author = ((EditText) findViewById(R.id.authorEditText)).getText().toString();
+        String comment = ((EditText) findViewById(R.id.commentEditText)).getText().toString();
+
+        InputStream is = new ByteArrayInputStream(image);
+
+        BookData bookData = new BookData(date, title, author, comment, is);
+
+        new Tweeter().execute(bookData);
+    }
+
+    public void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        //http://twitter4j.org/ja/configuration.html
+        ConfigurationBuilder cb = new ConfigurationBuilder();
+        cb.setDebugEnabled(true)
+                .setOAuthAccessToken(accessToken)
+                .setOAuthAccessTokenSecret(accessTokenSecret)
+                .setOAuthConsumerKey(consumerKey)
+                .setOAuthConsumerSecret(consumerSecret);
+        twitter = new TwitterFactory(cb.build()).getInstance();
+        twitterCron();
+    }
+
     class DocumentGetter extends AsyncTask<String, Void, Document> {
         private String isbn;
 
@@ -116,7 +150,19 @@ public class MainActivity extends ActionBarActivity {
                     InputStream is = new URL(urlString).openStream();
                     final Drawable img = Drawable.createFromStream(is, "");
 
-                    // ネットワークは別のスレッドからなのに描画はUスレッドから面倒
+                    is.reset();
+                    BufferedInputStream bis = new BufferedInputStream(is);
+                    int count = 0;
+                    while(bis.read()!=-1) {
+                        count++;
+                    }
+                    bis.reset();
+                    image = new byte[count];
+                    for(int i = 0;i < count;i++) {
+                        image[i] = (byte)bis.read();
+                    }
+
+                    // ネットワークは別のスレッドからなのに描画はUIスレッドから面倒
                     MainActivity.this.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -144,6 +190,19 @@ public class MainActivity extends ActionBarActivity {
             amazon.setBase("/Items/Item/ItemAttributes");
             ((EditText) findViewById(R.id.titleEditText)).setText(amazon.get("./Title"));
             ((EditText) findViewById(R.id.authorEditText)).setText(amazon.get("./Author"));
+        }
+    }
+
+    class Tweeter extends AsyncTask<BookData, Void, StatusUpdate> {
+        @Override
+        protected StatusUpdate doInBackground(BookData... params) {
+            BookData bookData = params[0];
+
+            String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "]";
+
+            StatusUpdate status = new StatusUpdate(message);
+            status.media("book.jpg", bookData.imageStream);
+
         }
     }
 }

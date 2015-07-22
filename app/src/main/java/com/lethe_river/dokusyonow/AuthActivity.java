@@ -9,6 +9,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class AuthActivity extends Activity {
 
@@ -56,9 +59,19 @@ public class AuthActivity extends Activity {
     }
 
     public void load(View view) {
+        Map<String, String> authData = getAuthData(this);
         SharedPreferences prefs = getSharedPreferences("authPrefs", Context.MODE_PRIVATE);
-        ((EditText) findViewById(R.id.awsAccessKeyEditText)).setText(prefs.getString("awsAccessKey", ""));
-        ((EditText) findViewById(R.id.awsSecretKeyEditText)).setText(prefs.getString("awsSecretKey", ""));
-        ((EditText) findViewById(R.id.associateTagEditText)).setText(prefs.getString("associateTag", ""));
+        ((EditText) findViewById(R.id.awsAccessKeyEditText)).setText(authData.get("awsAccessKey"));
+        ((EditText) findViewById(R.id.awsSecretKeyEditText)).setText(authData.get("awsSecretKey"));
+        ((EditText) findViewById(R.id.associateTagEditText)).setText(authData.get("associateTag"));
+    }
+
+    public static Map<String, String> getAuthData(Activity activity) {
+        Map<String, String> auth = new HashMap<>();
+        SharedPreferences prefs = activity.getSharedPreferences("authPrefs", Context.MODE_PRIVATE);
+        auth.put("awsAccessKey", prefs.getString("awsAccessKey", ""));
+        auth.put("awsSecretKey", prefs.getString("awsSecretKey", ""));
+        auth.put("associateTag", prefs.getString("associateTag", ""));
+        return auth;
     }
 }

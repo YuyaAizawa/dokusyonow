@@ -3,6 +3,9 @@ package com.lethe_river.dokusyonow;
 import twitter4j.Status;
 import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.conf.ConfigurationBuilder;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
@@ -122,20 +125,6 @@ public class MainActivity extends Activity {
 
         new Tweeter().execute(bookData);
     }
-
-    public void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        //http://twitter4j.org/ja/configuration.html
-        ConfigurationBuilder cb = new ConfigurationBuilder();
-        cb.setDebugEnabled(true)
-                .setOAuthAccessToken(accessToken)
-                .setOAuthAccessTokenSecret(accessTokenSecret)
-                .setOAuthConsumerKey(consumerKey)
-                .setOAuthConsumerSecret(consumerSecret);
-        twitter = new TwitterFactory(cb.build()).getInstance();
-        twitterCron();
-    }
-
     class DocumentGetter extends AsyncTask<String, Void, Document> {
         private String isbn;
 
@@ -193,16 +182,30 @@ public class MainActivity extends Activity {
         }
     }
 
-    class Tweeter extends AsyncTask<BookData, Void, StatusUpdate> {
+    class Tweeter extends AsyncTask<BookData, Void, Void> {
         @Override
-        protected StatusUpdate doInBackground(BookData... params) {
+        protected Void doInBackground(BookData... params) {
             BookData bookData = params[0];
 
             String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "]";
 
             StatusUpdate status = new StatusUpdate(message);
             status.media("book.jpg", bookData.imageStream);
-
+            //Twitter twitter =
+            ConfigurationBuilder cb = new ConfigurationBuilder();
+            cb.setDebugEnabled(true)
+                    .setOAuthAccessToken("あくせすとーくん")
+                    .setOAuthAccessTokenSecret("あくせすとーくんしーくれっと")
+                    .setOAuthConsumerKey("こんしゅーまーきー")
+                    .setOAuthConsumerSecret("こんしゅーまーきーしーくれっと");
+            twitter = new TwitterFactory(cb.build()).getInstance();
+            try {
+                twitter.updateStatus(status);
+            } catch (TwitterException e) {
+                Toast.makeText(MainActivity.this,"えらー",Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }

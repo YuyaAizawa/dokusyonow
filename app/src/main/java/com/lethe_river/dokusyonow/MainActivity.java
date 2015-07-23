@@ -220,7 +220,7 @@ public class MainActivity extends Activity {
         protected Void doInBackground(BookData... params) {
             BookData bookData = params[0];
 
-            String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "]";
+            String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "] #"+getString(R.string.dokusyo_now);
 
             StatusUpdate status = new StatusUpdate(message);
             if(bookData.imageStream != null) {

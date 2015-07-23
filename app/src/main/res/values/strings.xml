@@ -5,4 +5,8 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_main">MainActivity</string>
     <string name="title_activity_list">ListActivity</string>
+    <string name="tweet_error">ツイートできませんでした</string>
+    <string name="tweet_about">についてツイートしました</string>
+    <string name="not_found_on_amazon">Amazonにはありませんでした</string>
+    <string name="image_too_big">画像の容量が大きすぎます</string>
 </resources>

@@ -1,6 +1,5 @@
 package com.lethe_river.dokusyonow;
 
-import twitter4j.Status;
 import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -10,10 +9,11 @@ import twitter4j.conf.ConfigurationBuilder;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,6 +25,7 @@ import org.w3c.dom.Document;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.text.DateFormat;
@@ -35,10 +36,10 @@ import java.util.Map;
 
 public class MainActivity extends Activity {
 
+    private static final int REQ_IMAGE = 0;
     private static final int REQ_CODE = 1;
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
-    Twitter twitter;
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
     byte[] image;
 
@@ -87,15 +88,29 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(resultCode != Activity.RESULT_OK || requestCode != REQ_CODE) {
+        if(resultCode != Activity.RESULT_OK) {
             return;
         }
 
-        String isbn = data.getStringExtra("SCAN_RESULT");
-        ((EditText) findViewById(R.id.isbnEditText)).setText(isbn);
+        switch (requestCode) {
+            case REQ_IMAGE:
+                Bitmap bitmap = (Bitmap) data.getExtras().getParcelable("data");
+                ImageView imageView = ((ImageView) findViewById(R.id.imageView));
+                imageView.setImageBitmap(bitmap);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                image = baos.toByteArray();
+                return;
 
-//        ((EditText) findViewById(R.id.testEditText)).setText(AuthActivity.getAuthData(this).toString());
-        fillBookData(isbn);
+
+            case REQ_CODE:
+                String isbn = data.getStringExtra("SCAN_RESULT");
+                ((EditText) findViewById(R.id.isbnEditText)).setText(isbn);
+                fillBookData(isbn);
+                return;
+
+            default:
+        }
     }
 
     public void fillBookData(View view) {
@@ -119,12 +134,30 @@ public class MainActivity extends Activity {
         String author = ((EditText) findViewById(R.id.authorEditText)).getText().toString();
         String comment = ((EditText) findViewById(R.id.commentEditText)).getText().toString();
 
-        InputStream is = new ByteArrayInputStream(image);
+        InputStream is = image != null ? new ByteArrayInputStream(image) : null;
 
         BookData bookData = new BookData(date, title, author, comment, is);
 
         new Tweeter().execute(bookData);
     }
+
+   public void getImageFromCamera(View view) {
+       Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+       intent.addCategory(Intent.CATEGORY_DEFAULT);
+
+       startActivityForResult(intent, REQ_IMAGE);
+   }
+
+    void makeText(final String message) {
+        runOnUiThread(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
     class DocumentGetter extends AsyncTask<String, Void, Document> {
         private String isbn;
 
@@ -137,19 +170,20 @@ public class MainActivity extends Activity {
             if (urlString != null) {
                 try {
                     InputStream is = new URL(urlString).openStream();
-                    final Drawable img = Drawable.createFromStream(is, "");
 
-                    is.reset();
                     BufferedInputStream bis = new BufferedInputStream(is);
-                    int count = 0;
-                    while(bis.read()!=-1) {
-                        count++;
+
+                    image = new byte[0xfffff];
+
+                    for(int i = 0,b;(b = bis.read())!=-1;i++) {
+                        image[i] = (byte)b;
                     }
-                    bis.reset();
-                    image = new byte[count];
-                    for(int i = 0;i < count;i++) {
-                        image[i] = (byte)bis.read();
+                    if(bis.read()!=-1) {
+                        image = null;
+                        makeText(getString(R.string.image_too_big));
                     }
+
+                    final Drawable img = Drawable.createFromStream(new ByteArrayInputStream(image), "");
 
                     // ネットワークは別のスレッドからなのに描画はUIスレッドから面倒
                     MainActivity.this.runOnUiThread(new Runnable() {
@@ -169,11 +203,10 @@ public class MainActivity extends Activity {
 
         @Override
         protected void onPostExecute(Document document) {
-//          ((EditText) MainActivity.this.findViewById(R.id.testEditText)).setText(document.toString());
             XMLDocumentWrapper amazon = new XMLDocumentWrapper(document);
 
             if (amazon.get("/Items/Item/ItemAttributes/Title") == null) {
-                Toast.makeText(MainActivity.this, "not found on Amazon", Toast.LENGTH_SHORT).show();
+                makeText(getString(R.string.not_found_on_amazon));
                 return;
             }
             amazon.setBase("/Items/Item/ItemAttributes");
@@ -190,21 +223,24 @@ public class MainActivity extends Activity {
             String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "]";
 
             StatusUpdate status = new StatusUpdate(message);
-            status.media("book.jpg", bookData.imageStream);
-            //Twitter twitter =
+            if(bookData.imageStream != null) {
+                status.media("book.jpg", bookData.imageStream);
+            }
             ConfigurationBuilder cb = new ConfigurationBuilder();
+            Map<String, String> map = AuthActivity.getAuthData(MainActivity.this);
             cb.setDebugEnabled(true)
-                    .setOAuthAccessToken("あくせすとーくん")
-                    .setOAuthAccessTokenSecret("あくせすとーくんしーくれっと")
-                    .setOAuthConsumerKey("こんしゅーまーきー")
-                    .setOAuthConsumerSecret("こんしゅーまーきーしーくれっと");
-            twitter = new TwitterFactory(cb.build()).getInstance();
+                    .setOAuthAccessToken(map.get("accessToken"))
+                    .setOAuthAccessTokenSecret(map.get("accessTokenSecret"))
+                    .setOAuthConsumerKey(map.get("consumerKey"))
+                    .setOAuthConsumerSecret(map.get("consumerKeySecret"));
+            Twitter twitter = new TwitterFactory(cb.build()).getInstance();
             try {
                 twitter.updateStatus(status);
             } catch (TwitterException e) {
-                Toast.makeText(MainActivity.this,"えらー",Toast.LENGTH_LONG).show();
+                makeText(getString(R.string.tweet_error));
                 e.printStackTrace();
             }
+            makeText(bookData.title+getString(R.string.tweet_about));
             return null;
         }
     }

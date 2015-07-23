@@ -4,7 +4,8 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="com.lethe_river.dokusyonow.MainActivity">
+    tools:context="com.lethe_river.dokusyonow.MainActivity"
+    style="@android:style/Theme.Black">
 
     <LinearLayout
         android:orientation="vertical"
@@ -16,7 +17,8 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="読書なう"
-            android:id="@+id/textView" />
+            android:id="@+id/textView"
+            style="@style/Base.TextAppearance.AppCompat.Title" />
 
         <LinearLayout
             android:orientation="horizontal"
@@ -179,15 +181,32 @@
             android:layout_weight="1"
             android:onClick="tweet" />
 
-        <Button
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="0dip"
-            android:text="authorization"
-            android:id="@+id/authButton"
-            style="@style/ButtonTheme"
-            android:onClick="openAuthActivity"
-            android:layout_alignParentBottom="true"
-            android:layout_weight="1" />
+            android:layout_weight="1">
+
+            <Button
+                android:layout_width="0dip"
+                android:layout_height="match_parent"
+                android:text="history"
+                android:id="@+id/historyButton"
+                android:layout_weight="1"
+                style="@style/ButtonTheme"
+                android:layout_gravity="center_horizontal"
+                android:onClick="openHistory" />
+
+            <Button
+                android:layout_width="0dip"
+                android:layout_height="match_parent"
+                android:text="authorization"
+                android:id="@+id/authButton"
+                style="@style/ButtonTheme"
+                android:onClick="openAuthActivity"
+                android:layout_alignParentBottom="true"
+                android:layout_weight="1" />
+        </LinearLayout>
 
     </LinearLayout>
 </FrameLayout>

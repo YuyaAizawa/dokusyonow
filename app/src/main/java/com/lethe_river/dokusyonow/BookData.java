@@ -1,11 +1,12 @@
 package com.lethe_river.dokusyonow;
 
 import java.io.InputStream;
+import java.io.Serializable;
 
 /**
  * Created by Yuya on 15/07/22.
  */
-public class BookData {
+public class BookData implements Serializable {
     public final String date;
     public final String title;
     public final String author;

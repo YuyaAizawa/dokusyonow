@@ -137,16 +137,21 @@ public class MainActivity extends Activity {
         InputStream is = image != null ? new ByteArrayInputStream(image) : null;
 
         BookData bookData = new BookData(date, title, author, comment, is);
+        HistoryActivity.addBook(bookData, this);
 
         new Tweeter().execute(bookData);
     }
 
-   public void getImageFromCamera(View view) {
-       Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-       intent.addCategory(Intent.CATEGORY_DEFAULT);
+    public void openHistory(View view) {
+        startActivity(new Intent(this, HistoryActivity.class));
+    }
 
-       startActivityForResult(intent, REQ_IMAGE);
-   }
+    public void getImageFromCamera(View view) {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+
+        startActivityForResult(intent, REQ_IMAGE);
+    }
 
     void makeText(final String message) {
         runOnUiThread(
@@ -220,7 +225,7 @@ public class MainActivity extends Activity {
         protected Void doInBackground(BookData... params) {
             BookData bookData = params[0];
 
-            String message = bookData.comment + "[" + bookData.title + ", " + bookData.author + "] #"+getString(R.string.dokusyo_now);
+            String message = bookData.comment + " - " + bookData.title + ", " + bookData.author + " #"+getString(R.string.dokusyo_now);
 
             StatusUpdate status = new StatusUpdate(message);
             if(bookData.imageStream != null) {
